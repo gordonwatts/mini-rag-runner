@@ -58,5 +58,6 @@ desktop.ini
 *.log
 
 # Local environment
+secrets.env
 .env
 .env.*
