@@ -1,11 +1,11 @@
 services:
   lightrag:
-    image: minirag-lightrag:latest
+    image: minirag:latest
     ports:
       - "${PORT:-9721}:9721"
     volumes:
-      - D:\rag-data\european-strategy\storage:/app/data/rag_storage
-      - D:\rag-data\european-strategy\inputs:/app/data/inputs
+      - D:\rag-data\european-strategy\storage:/app/rag_storage
+      - D:\rag-data\european-strategy\inputs:/app/inputs
     env_file:
       - defaults.env
       - secrets.env
@@ -16,6 +16,7 @@ services:
       - lightrag_net
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: ["--log-level", "INFO"]
 networks:
   lightrag_net:
     driver: bridge
