@@ -1,0 +1,22 @@
+services:
+  lightrag:
+    image: lightrag:latest
+    ports:
+      - "${PORT:-9621}:9621"
+    volumes:
+      - D:\rag-data\light-european-strategy\storage:/app/data/rag_storage
+      - D:\rag-data\light-european-strategy\inputs:/app/data/inputs
+    env_file:
+      - defaults-light.env
+      - secrets.env
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
+    networks:
+      - lightrag_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["--log-level", "INFO"]
+networks:
+  lightrag_net:
+    driver: bridge
