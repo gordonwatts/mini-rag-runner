@@ -1,32 +1,20 @@
-"""
-Module serving as the entry point for the mini-rag-mcp command.
-This will run an LLM's MCP server using lightrag-hku.
-"""
-
 import sys
-import argparse
+
+import typer
 
 
-def main():
+def main(
+    host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
+    port: int = typer.Option(8000, help="Port to bind the server to"),
+    model: str = typer.Option("gpt-4o-mini", help="LLM model to use"),
+):
     """
-    Entry point for the mini-rag-mcp command.
-    This function will initialize and run the MCP server using lightrag-hku.
+    Run an LLM's MCP server with lightrag-hku.
     """
-    parser = argparse.ArgumentParser(
-        description="Run an LLM's MCP server with lightrag-hku"
-    )
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind the server to")
-    parser.add_argument(
-        "--port", type=int, default=8000, help="Port to bind the server to"
-    )
-    parser.add_argument("--model", default="gpt-4o-mini", help="LLM model to use")
-
-    args = parser.parse_args()
-
     print(f"Starting MCP server with lightrag-hku")
-    print(f"Host: {args.host}")
-    print(f"Port: {args.port}")
-    print(f"Model: {args.model}")
+    print(f"Host: {host}")
+    print(f"Port: {port}")
+    print(f"Model: {model}")
 
     try:
         # This is a placeholder for the actual implementation
@@ -41,5 +29,9 @@ def main():
         sys.exit(1)
 
 
+def start_main():
+    typer.run(main)
+
+
 if __name__ == "__main__":
-    main()
+    typer.run(main)

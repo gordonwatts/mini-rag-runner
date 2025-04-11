@@ -18,10 +18,11 @@ classifiers = [
 ]
 dependencies = [
     "lightrag-hku",
+    "typer",
 ]
 
 [project.scripts]
-mini-rag-mcp = "mini_rag_runner.mcp_runner:main"
+mini-rag-mcp = "mini_rag_runner.mcp_runner:start_main"
 
 [project.optional-dependencies]
 dev = [
