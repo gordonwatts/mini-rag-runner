@@ -1,6 +1,18 @@
+import asyncio
 import sys
+from typing import List
 
 import typer
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("Demo")
+
+
+@mcp.tool()
+def get_conference_titles() -> List[str]:
+    """Returns the list of conferences this server is serving info about.
+    Use these as the `conference_name` in other tool calls."""
+    return ["European Strategy Update Document Database"]
 
 
 def main(
@@ -9,18 +21,21 @@ def main(
     model: str = typer.Option("gpt-4o-mini", help="LLM model to use"),
 ):
     """
-    Run an LLM's MCP server with lightrag-hku.
+    Run an LLM's MCP server with conference information.
     """
-    print(f"Starting MCP server with lightrag-hku")
+    print(f"Starting MCP Conference Info server")
     print(f"Host: {host}")
     print(f"Port: {port}")
     print(f"Model: {model}")
 
     try:
-        # This is a placeholder for the actual implementation
-        # In a real implementation, you would import lightrag-hku
-        # and start the MCP server here
-        print("MCP server is running. Press Ctrl+C to stop.")
+        print(mcp.settings.host)
+        print(mcp.settings.port)
+        mcp.settings.host = host
+        mcp.settings.port = port
+        print(mcp.settings.host)
+        print(mcp.settings.port)
+        mcp.run("sse")
     except KeyboardInterrupt:
         print("\nShutting down MCP server...")
         sys.exit(0)
