@@ -6,6 +6,10 @@ A package that runs an LLM's Model Context Protocol (MCP) server with the lightr
 
 LightRAG has a very nice API/server that can run in a second process. Unfortunately, I can't setup a docker on the server I need to run. This enables an MCP server, read-only, interfaced to lightrag, with github authentication and keys.
 
+## Running
+
+`git+<https://github.com/><username>/<repository>.git@<branch_or_tag>#egg=<package_name>`
+
 ## Installation
 
 You can install this package directly from the source:
