@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "lightrag-hku",
     "typer",
+    "mcp",
 ]
 
 [project.scripts]
