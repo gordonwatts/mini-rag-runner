@@ -8,7 +8,9 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
 
 ## Running
 
-`git+<https://github.com/><username>/<repository>.git@<branch_or_tag>#egg=<package_name>`
+```bash
+ uvx --python=3.13 --from=git+<https://github.com/gordonwatts/mini-rag-runner.git@main> mini-rag-mcp
+```
 
 ## Installation
 
