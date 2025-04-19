@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, cast
 
 import typer
 from fastapi import FastAPI, Request
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 @dataclass
 class rag_context:
-    number: LightRAG
+    rag: LightRAG
 
 
 @asynccontextmanager
@@ -56,11 +56,26 @@ app = FastAPI(lifespan=rag_context_setup)
 
 @app.post("/get_rag_data", response_model=List[RagResponse])
 def get_rag_data(request: RagRequest, fastapi_request: Request):
-    r_context = fastapi_request.app.state.context
+    r_context = cast(rag_context, fastapi_request.app.state.context)
+
+    # # Perform naive search
+    # mode = "naive"
+    # # Perform local search
+    # mode = "local"
+    # # Perform global search
+    # mode = "global"
+    # # Perform hybrid search
+    # mode = "hybrid"
+    # Mix mode Integrates knowledge graph and vector retrieval.
+    mode = "mix"
+
+    q_params = QueryParam(mode=mode, only_need_context=True)
+
+    result = r_context.rag.query(request.question, param=q_params)
+
     # Placeholder logic: return dummy data
     return [
-        RagResponse(chunk=f"Example chunk 1 {r_context.number}", document_reference="doc1.pdf"),
-        RagResponse(chunk=f"Example chunk 2", document_reference="doc2.pdf"),
+        RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
     ]
 
 
