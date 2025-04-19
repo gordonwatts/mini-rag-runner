@@ -47,15 +47,11 @@ class RagResponse(BaseModel):
     document_reference: str
 
 
-class RagRequest(BaseModel):
-    question: str
-
-
 app = FastAPI(lifespan=rag_context_setup)
 
 
 @app.post("/get_rag_data", response_model=List[RagResponse])
-def get_rag_data(request: RagRequest, fastapi_request: Request):
+def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
     r_context = cast(rag_context, fastapi_request.app.state.context)
 
     # # Perform naive search
@@ -71,7 +67,7 @@ def get_rag_data(request: RagRequest, fastapi_request: Request):
 
     q_params = QueryParam(mode=mode, only_need_context=True)
 
-    result = r_context.rag.query(request.question, param=q_params)
+    result = r_context.rag.query(question, param=q_params)
 
     # Placeholder logic: return dummy data
     return [
