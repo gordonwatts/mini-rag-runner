@@ -1,9 +1,45 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List
-import typer
 
-app = FastAPI()
+import typer
+from fastapi import FastAPI, Request
+from lightrag import LightRAG, QueryParam
+from pydantic import BaseModel
+
+
+@dataclass
+class rag_context:
+    number: LightRAG
+
+
+@asynccontextmanager
+async def rag_context_setup(app: FastAPI):
+    "Create the RAG application"
+    from lightrag.kg.shared_storage import initialize_pipeline_status
+    from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+    from lightrag.utils import setup_logger
+
+    # setup_logger("lightrag", level="INFO")
+
+    working_dir = Path("/home/gwatts/code/llm/storage-esu")
+    assert working_dir.exists()
+
+    rag = LightRAG(
+        working_dir=str(working_dir),
+        embedding_func=openai_embed,
+        llm_model_func=gpt_4o_mini_complete,
+    )
+
+    await rag.initialize_storages()
+    await initialize_pipeline_status()
+
+    # Make sure everyone can use it.
+    app.state.context = rag_context(rag)
+
+    # Let it go. No need for any teardown afterwards.
+    yield
 
 
 class RagResponse(BaseModel):
@@ -15,12 +51,16 @@ class RagRequest(BaseModel):
     question: str
 
 
+app = FastAPI(lifespan=rag_context_setup)
+
+
 @app.post("/get_rag_data", response_model=List[RagResponse])
-def get_rag_data(request: RagRequest):
+def get_rag_data(request: RagRequest, fastapi_request: Request):
+    r_context = fastapi_request.app.state.context
     # Placeholder logic: return dummy data
     return [
-        RagResponse(chunk="Example chunk 1", document_reference="doc1.pdf"),
-        RagResponse(chunk="Example chunk 2", document_reference="doc2.pdf"),
+        RagResponse(chunk=f"Example chunk 1 {r_context.number}", document_reference="doc1.pdf"),
+        RagResponse(chunk=f"Example chunk 2", document_reference="doc2.pdf"),
     ]
 
 
@@ -28,6 +68,8 @@ def main(
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
 ):
+    # imports here to make sure command line interactions are fast.
+    import lightrag
     import uvicorn
 
     uvicorn.run(app, host=host, port=port)
