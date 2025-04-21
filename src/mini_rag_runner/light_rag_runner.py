@@ -74,7 +74,7 @@ def main(
     from pathlib import Path
 
     if not rag_db.exists():
-        raise ValueError(f"Failed to find working directory {working_dir}")
+        raise ValueError(f"Failed to find working directory {rag_db}")
 
     app = create_app(rag_db.absolute())
     uvicorn.run(app, host=host, port=port)
