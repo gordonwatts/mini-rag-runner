@@ -35,14 +35,11 @@ dependencies = [
 
     # Extra libraries are installed when needed using pipmaster
 
-    "pipmaster",
     "pydantic",
     "python-dotenv",
 
     "tenacity",
-
     "tiktoken",
-    "xlsxwriter>=3.1.0",
     "numpy",
     "pipmaster",
     "openai",
