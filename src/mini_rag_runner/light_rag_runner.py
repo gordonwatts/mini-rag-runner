@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 from typing import List, cast
 
@@ -53,9 +54,13 @@ def create_app(working_dir: Path) -> FastAPI:
     @app.post("/get_rag_data", response_model=List[RagResponse])
     def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
         r_context = cast(rag_context, fastapi_request.app.state.context)
+        if r_context is None:
+            raise RuntimeError("The RAG Context is `None` - should never happen.")
         mode = "mix"
+        logging.debug(f"Querying for the question: '{question}'.")
         q_params = QueryParam(mode=mode, only_need_context=True)
         result = r_context.rag.query(question, param=q_params)
+        logging.debug(f"  Result: '{result}'.")
         return [
             RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
         ]
@@ -81,8 +86,8 @@ def main(
         os.environ["OPENAI_API_KEY"] = openai_key
         os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
 
-    if not rag_db.exists():
-        raise ValueError(f"Failed to find working directory {rag_db}")
+    if not rag_db.exists() or not (rag_db / "graph_chunk_entity_relation.graphml").exists():
+        raise ValueError(f"Failed to find rag database in directory {rag_db}")
 
     app = create_app(rag_db.absolute())
     uvicorn.run(app, host=host, port=port)
