@@ -14,75 +14,69 @@ class rag_context:
     rag: LightRAG
 
 
-@asynccontextmanager
-async def rag_context_setup(app: FastAPI):
-    "Create the RAG application"
-    from lightrag.kg.shared_storage import initialize_pipeline_status
-    from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
-    from lightrag.utils import setup_logger
-
-    # setup_logger("lightrag", level="INFO")
-
-    working_dir = Path("/home/gwatts/code/llm/storage-esu")
-    assert working_dir.exists()
-
-    rag = LightRAG(
-        working_dir=str(working_dir),
-        embedding_func=openai_embed,
-        llm_model_func=gpt_4o_mini_complete,
-    )
-
-    await rag.initialize_storages()
-    await initialize_pipeline_status()
-
-    # Make sure everyone can use it.
-    app.state.context = rag_context(rag)
-
-    # Let it go. No need for any teardown afterwards.
-    yield
-
-
 class RagResponse(BaseModel):
     chunk: str
     document_reference: str
 
 
-app = FastAPI(lifespan=rag_context_setup)
+def create_app(working_dir: Path) -> FastAPI:
+    "Define the complete app here"
 
+    @asynccontextmanager
+    async def rag_context_setup(app: FastAPI):
+        "Create the RAG application"
+        from lightrag.kg.shared_storage import initialize_pipeline_status
+        from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+        from lightrag.utils import setup_logger
 
-@app.post("/get_rag_data", response_model=List[RagResponse])
-def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
-    r_context = cast(rag_context, fastapi_request.app.state.context)
+        # setup_logger("lightrag", level="INFO")
 
-    # # Perform naive search
-    # mode = "naive"
-    # # Perform local search
-    # mode = "local"
-    # # Perform global search
-    # mode = "global"
-    # # Perform hybrid search
-    # mode = "hybrid"
-    # Mix mode Integrates knowledge graph and vector retrieval.
-    mode = "mix"
+        assert working_dir.exists(), f"Failed to find working directory {working_dir}"
 
-    q_params = QueryParam(mode=mode, only_need_context=True)
+        rag = LightRAG(
+            working_dir=str(working_dir),
+            embedding_func=openai_embed,
+            llm_model_func=gpt_4o_mini_complete,
+        )
 
-    result = r_context.rag.query(question, param=q_params)
+        await rag.initialize_storages()
+        await initialize_pipeline_status()
 
-    # Placeholder logic: return dummy data
-    return [
-        RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
-    ]
+        # Make sure everyone can use it.
+        app.state.context = rag_context(rag)
+
+        yield
+        # Add clean up code here if we need it.
+
+    app = FastAPI(lifespan=rag_context_setup)
+
+    @app.post("/get_rag_data", response_model=List[RagResponse])
+    def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
+        r_context = cast(rag_context, fastapi_request.app.state.context)
+        mode = "mix"
+        q_params = QueryParam(mode=mode, only_need_context=True)
+        result = r_context.rag.query(question, param=q_params)
+        return [
+            RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
+        ]
+
+    return app
 
 
 def main(
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
+    rag_db: Path = typer.Option(
+        ..., "--rag-db", help="Path to the RAG database directory (must exist)"
+    ),
 ):
-    # imports here to make sure command line interactions are fast.
-    import lightrag
     import uvicorn
+    from pathlib import Path
 
+    if not rag_db.exists():
+        raise ValueError(f"Failed to find working directory {working_dir}")
+
+    app = create_app(rag_db.absolute())
     uvicorn.run(app, host=host, port=port)
 
 
