@@ -69,9 +69,17 @@ def main(
     rag_db: Path = typer.Option(
         ..., "--rag-db", help="Path to the RAG database directory (must exist)"
     ),
+    openai_key: str = typer.Option(
+        None, "--openai-key", help="OpenAI API key to set as OPEN_API_KEY environment variable"
+    ),
 ):
     import uvicorn
     from pathlib import Path
+    import os
+
+    if openai_key:
+        os.environ["OPENAI_API_KEY"] = openai_key
+        os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
 
     if not rag_db.exists():
         raise ValueError(f"Failed to find working directory {rag_db}")
