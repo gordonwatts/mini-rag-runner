@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Package to run an LLM's MCP server with lightrag-hku"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -20,10 +20,38 @@ dependencies = [
     "lightrag-hku",
     "typer",
     "mcp",
+    "fastapi",
+    # The following are things needed by lightrag but aren't in their
+    # pyproject for some reason.
+    "aiohttp",
+    "configparser",
+    "future",
+
+    # Basic modules
+    "gensim",
+
+    # Additional Packages for export Functionality
+    "pandas>=2.0.0",
+
+    # Extra libraries are installed when needed using pipmaster
+
+    "pydantic",
+    "python-dotenv",
+
+    "tenacity",
+    "tiktoken",
+    "numpy",
+    "pipmaster",
+    "openai",
+    "tenacity",
+    "networkx",
+    "pip",
+    "nano_vectordb"
 ]
 
 [project.scripts]
 mini-rag-mcp = "mini_rag_runner.mcp_runner:start_main"
+light-rag-webapi = "mini_rag_runner.light_rag_runner:start_main"
 
 [project.optional-dependencies]
 dev = [
