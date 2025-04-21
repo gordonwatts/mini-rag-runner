@@ -17,8 +17,20 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
 Building the docker container:
 
 ```bash
-docker build --pull --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.' 
+docker build --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.' 
 ```
+
+Often it makes sense to build this for more than one image type. To do this, you'll need a one-time setup:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install all
+docker buildx create --use
+```
+
+And now you can do the build:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t azurlightrag:latest .
 
 And running it. Note you need to mount the database inside the container (somehow).
 
