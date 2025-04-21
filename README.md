@@ -23,7 +23,7 @@ docker build --pull --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.'
 And running it. Note you need to mount the database inside the container (somehow).
 
 ```bash
-docker run -p8001:8001 -v ${PWD}../storage-esu:/db --rm -it miniragrunner:latest --rag-db /db --openai-key <api-key>
+docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it miniragrunner:latest --rag-db /db --openai-key <api-key>
 ```
 
 ## Installation
