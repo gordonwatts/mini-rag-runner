@@ -12,6 +12,20 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
  uvx --python=3.13 --from=git+<https://github.com/gordonwatts/mini-rag-runner.git@main> mini-rag-mcp
 ```
 
+### Running from docker
+
+Building the docker container:
+
+```bash
+docker build --pull --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.' 
+```
+
+And running it. Note you need to mount the database inside the container (somehow).
+
+```bash
+docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it miniragrunner:latest --rag-db /db --openai-key <api-key>
+```
+
 ## Installation
 
 You can install this package directly from the source:
