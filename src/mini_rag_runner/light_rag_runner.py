@@ -82,9 +82,9 @@ def main(
     from pathlib import Path
     import os
 
+    os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
     if openai_key:
         os.environ["OPENAI_API_KEY"] = openai_key
-        os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
 
     if not rag_db.exists() or not (rag_db / "graph_chunk_entity_relation.graphml").exists():
         raise ValueError(f"Failed to find rag database in directory {rag_db}")

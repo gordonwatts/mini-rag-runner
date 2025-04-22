@@ -27,15 +27,16 @@ docker run --privileged --rm tonistiigi/binfmt --install all
 docker buildx create --use
 ```
 
-And now you can do the build:
+And now you can do the build for multiple platforms. Note: some cloud services can only run `amd64`.
 
 ```bash
-docker buildx build --platform linux/amd64,linux/arm64 -t azurlightrag:latest .
+docker buildx build --platform linux/amd64,linux/arm64 -t gordonwatts/miniragrunner:1.0.0a1 --push .
+```
 
 And running it. Note you need to mount the database inside the container (somehow).
 
 ```bash
-docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it miniragrunner:latest --rag-db /db --openai-key <api-key>
+docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/miniragrunner:1.0.0a1 --rag-db /db --openai-key <api-key>
 ```
 
 ## Installation
