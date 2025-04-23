@@ -17,13 +17,26 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
 Building the docker container:
 
 ```bash
-docker build --pull --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.' 
+docker build --rm -f 'Dockerfile' -t 'miniragrunner:latest' '.' 
+```
+
+Often it makes sense to build this for more than one image type. To do this, you'll need a one-time setup:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install all
+docker buildx create --use
+```
+
+And now you can do the build for multiple platforms. Note: some cloud services can only run `amd64`.
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t gordonwatts/miniragrunner:1.0.0a1 --push .
 ```
 
 And running it. Note you need to mount the database inside the container (somehow).
 
 ```bash
-docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it miniragrunner:latest --rag-db /db --openai-key <api-key>
+docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/miniragrunner:1.0.0a1 --rag-db /db --openai-key <api-key>
 ```
 
 ## Installation
