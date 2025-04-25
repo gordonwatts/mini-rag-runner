@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import List, cast
+from typing import Dict, List, Optional, cast
 
 import typer
 from fastapi import FastAPI, Query, Request
@@ -20,7 +20,7 @@ class RagResponse(BaseModel):
     document_reference: str
 
 
-def create_app(working_dir: Path) -> FastAPI:
+def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None) -> FastAPI:
     "Define the complete app here"
 
     @asynccontextmanager
@@ -49,11 +49,13 @@ def create_app(working_dir: Path) -> FastAPI:
         yield
         # Add clean up code here if we need it.
 
+    # Use provided servers or default to localhost
     app = FastAPI(
         lifespan=rag_context_setup,
         title="European Strategy Update 2025 Document Database",
         description="Endpoint access a vector database with entity relationships of the 264 documents.",
         version="1.0.0",
+        servers=servers,
     )
 
     @app.post(
@@ -90,6 +92,11 @@ def main(
     openai_key: str = typer.Option(
         None, "--openai-key", help="OpenAI API key to set as OPEN_API_KEY environment variable"
     ),
+    server: List[str] = typer.Option(
+        None,
+        "--server",
+        help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
+    ),
 ):
     import uvicorn
     from pathlib import Path
@@ -102,7 +109,9 @@ def main(
     if not rag_db.exists() or not (rag_db / "graph_chunk_entity_relation.graphml").exists():
         raise ValueError(f"Failed to find rag database in directory {rag_db}")
 
-    app = create_app(rag_db.absolute())
+    # Prepare servers list for FastAPI
+    servers_list = [{"url": url} for url in server] if server else None
+    app = create_app(rag_db.absolute(), servers=servers_list)
     uvicorn.run(app, host=host, port=port)
 
 
