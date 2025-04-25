@@ -28,15 +28,15 @@ jobs:
       - name: Extract version from tag
         if: github.event_name == 'release'
         id: get_version
-        run: echo "::set-output name=VERSION::${GITHUB_REF#refs/tags/}"
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Set Docker tag
         id: docker_tag
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
-            echo "::set-output name=TAG::${{ steps.get_version.outputs.VERSION }}"
+            echo "TAG=${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=TAG::latest"
+            echo "TAG=latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image
