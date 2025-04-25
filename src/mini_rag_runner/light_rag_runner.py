@@ -49,9 +49,18 @@ def create_app(working_dir: Path) -> FastAPI:
         yield
         # Add clean up code here if we need it.
 
-    app = FastAPI(lifespan=rag_context_setup)
+    app = FastAPI(
+        lifespan=rag_context_setup,
+        title="European Strategy Update 2025 Document Database",
+        description="Endpoint access a vector database with entity relationships of the 264 documents.",
+        version="1.0.0",
+    )
 
-    @app.post("/get_rag_data", response_model=List[RagResponse])
+    @app.post(
+        "/get_rag_data",
+        response_model=List[RagResponse],
+        summary="Return list of documents from the vector db that are most closely matched to the `question`",
+    )
     def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
         r_context = cast(rag_context, fastapi_request.app.state.context)
         if r_context is None:
