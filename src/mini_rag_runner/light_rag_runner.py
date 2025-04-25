@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, cast
 
 import typer
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from lightrag import LightRAG, QueryParam
 from pydantic import BaseModel
 
@@ -59,9 +59,13 @@ def create_app(working_dir: Path) -> FastAPI:
     @app.post(
         "/get_rag_data",
         response_model=List[RagResponse],
-        summary="Return list of documents from the vector db that are most closely matched to the `question`",
+        summary="Return list, as a single string, of documents from the vector db that are most closely matched to the `question`",
     )
-    def get_rag_data(question: str, fastapi_request: Request, top_k: int = 20):
+    def get_rag_data(
+        fastapi_request: Request,
+        question: str = Query(..., description="text to use as vector db lookup"),
+        top_k: int = Query(20, description="Top N documents to return"),
+    ):
         r_context = cast(rag_context, fastapi_request.app.state.context)
         if r_context is None:
             raise RuntimeError("The RAG Context is `None` - should never happen.")
