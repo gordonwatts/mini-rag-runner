@@ -28,7 +28,6 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         "Create the RAG application"
         from lightrag.kg.shared_storage import initialize_pipeline_status
         from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
-        from lightrag.utils import setup_logger
 
         # setup_logger("lightrag", level="INFO")
 
@@ -53,7 +52,8 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
     app = FastAPI(
         lifespan=rag_context_setup,
         title="European Strategy Update 2025 Document Database",
-        description="Endpoint access a vector database with entity relationships of the 264 documents.",
+        description="Endpoint access a vector database with entity relationships of the "
+        "264 documents.",
         version="1.0.0",
         servers=servers,
     )
@@ -61,7 +61,8 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
     @app.post(
         "/get_rag_data",
         response_model=List[RagResponse],
-        summary="Return list, as a single string, of documents from the vector db that are most closely matched to the `question`",
+        summary="Return list, as a single string, of documents from the vector db that are most"
+        " closely matched to the `question`",
     )
     def get_rag_data(
         fastapi_request: Request,
@@ -99,7 +100,6 @@ def main(
     ),
 ):
     import uvicorn
-    from pathlib import Path
     import os
 
     os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
