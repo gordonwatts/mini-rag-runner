@@ -72,13 +72,13 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         r_context = cast(rag_context, fastapi_request.app.state.context)
         if r_context is None:
             raise RuntimeError("The RAG Context is `None` - should never happen.")
-        mode = "mix"
+        mode = "hybrid"
         logging.debug(f"Querying for the question: '{question}'.")
-        q_params = QueryParam(mode=mode, only_need_context=True)
+        q_params = QueryParam(mode=mode, only_need_context=True, top_k=top_k)
         result = r_context.rag.query(question, param=q_params)
         logging.debug(f"  Result: '{result}'.")
         return [
-            RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
+            RagResponse(chunk=f"{result}", document_reference="??"),
         ]
 
     return app
