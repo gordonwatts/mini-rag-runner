@@ -78,7 +78,7 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         result = r_context.rag.query(question, param=q_params)
         logging.debug(f"  Result: '{result}'.")
         return [
-            RagResponse(chunk=f"Example chunk 1 {result}", document_reference="doc1.pdf"),
+            RagResponse(chunk=f"{result}", document_reference="??"),
         ]
 
     return app
