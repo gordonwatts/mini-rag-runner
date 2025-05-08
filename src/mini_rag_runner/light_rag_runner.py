@@ -74,7 +74,11 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
             raise RuntimeError("The RAG Context is `None` - should never happen.")
         mode = "hybrid"
         logging.debug(f"Querying for the question: '{question}'.")
-        q_params = QueryParam(mode=mode, only_need_context=True, top_k=top_k)
+        q_params = QueryParam(
+            mode=mode,
+            top_k=top_k,
+            response_type="relevant quotes from original text as bullet points",
+        )
         result = r_context.rag.query(question, param=q_params)
         logging.debug(f"  Result: '{result}'.")
         return [
