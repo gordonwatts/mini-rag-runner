@@ -78,6 +78,8 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
             mode=mode,
             top_k=top_k,
             response_type="relevant quotes from original text as bullet points",
+            # TODO: as soon as released, update this.
+            # user_prompt="Report only the quotes, don't draw conclusions - that will be done later.",
         )
         result = r_context.rag.query(question, param=q_params)
         logging.debug(f"  Result: '{result}'.")
