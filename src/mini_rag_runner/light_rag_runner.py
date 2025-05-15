@@ -103,14 +103,14 @@ def create_app(
 
 
 @contextmanager
-def resolve_rag_db(rag_db: Path):
+def resolve_rag_db(rag_db: str):
     """
     Context manager: yields the path to the RAG DB directory, whether local or extracted from an
         archive/remote.
     Cleans up tempdir automatically if used.
     """
-    if rag_db.is_dir():
-        yield rag_db
+    if Path(rag_db).is_dir():
+        yield Path(rag_db)
     else:
         tmpdir = tempfile.TemporaryDirectory()
         tmp_path = Path(tmpdir.name)
@@ -130,7 +130,7 @@ def resolve_rag_db(rag_db: Path):
 
 
 def main(
-    rag_db: Path = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
+    rag_db: str = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
     title: str = typer.Argument(..., help="Title for the FastAPI app"),
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
