@@ -8,6 +8,14 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
 
 ## Running
 
+### Light Rag WebAPI
+
+```bash
+ light-rag-webapi ../azure-light-rag/storage-esu.tar.gz "European Union Strategy Update 2025 Submissions" --openai-key <key>
+```
+
+### MCP
+
 ```bash
  uvx --python=3.13 --from=git+<https://github.com/gordonwatts/mini-rag-runner.git@main> mini-rag-mcp
 ```
@@ -37,6 +45,25 @@ And running it. Note you need to mount the database inside the container (someho
 
 ```bash
 docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/miniragrunner:1.0.0a1 --rag-db /db --openai-key <api-key>
+```
+
+### How to prepare the tar.gz (or ZIP file) of the database
+
+You can give this an upacked directory or a tar.gz file that can be unpacked. To prep the file:
+
+1. `cd` into the database directory
+1. Compress: `tar -czvf ../storage-esu.tar.gz .`
+
+```bash
+$ tar -czvf ../storage-esu.tar.gz .
+./
+./vdb_chunks.json
+./vdb_relationships.json
+./kv_store_full_docs.json
+./vdb_entities.json
+./graph_chunk_entity_relation.graphml
+./kv_store_doc_status.json
+./kv_store_text_chunks.json
 ```
 
 ## Installation

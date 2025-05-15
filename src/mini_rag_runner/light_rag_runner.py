@@ -1,9 +1,13 @@
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
 import logging
+import tarfile
+import tempfile
+import zipfile
+from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
+import fsspec
 import typer
 from fastapi import FastAPI, Query, Request
 from lightrag import LightRAG, QueryParam
@@ -98,6 +102,32 @@ def create_app(
     return app
 
 
+@contextmanager
+def resolve_rag_db(rag_db: Path):
+    """
+    Context manager: yields the path to the RAG DB directory, whether local or extracted from an archive/remote.
+    Cleans up tempdir automatically if used.
+    """
+    if rag_db.is_dir():
+        yield rag_db
+    else:
+        tmpdir = tempfile.TemporaryDirectory()
+        tmp_path = Path(tmpdir.name)
+        with fsspec.open(str(rag_db), "rb") as f:
+            if str(rag_db).endswith(".zip"):
+                with zipfile.ZipFile(f) as zf:
+                    zf.extractall(tmp_path)
+            elif str(rag_db).endswith((".tar.gz", ".tgz")):
+                with tarfile.open(fileobj=f, mode="r:gz") as tf:
+                    tf.extractall(tmp_path)
+            else:
+                raise ValueError("Unsupported archive format for rag_db")
+        try:
+            yield tmp_path
+        finally:
+            tmpdir.cleanup()
+
+
 def main(
     rag_db: Path = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
     title: str = typer.Argument(..., help="Title for the FastAPI app"),
@@ -140,23 +170,25 @@ def main(
         "",
     )
 
-    logging.warning(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
+    logging.info(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
 
     # Next, get the server up and running
-    import uvicorn
     import os
+
+    import uvicorn
 
     os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
     if openai_key:
         os.environ["OPENAI_API_KEY"] = openai_key
 
-    if not rag_db.exists() or not (rag_db / "graph_chunk_entity_relation.graphml").exists():
-        raise ValueError(f"Failed to find rag database in directory {rag_db}")
+    with resolve_rag_db(rag_db) as rag_db_path:
+        if not (rag_db_path / "graph_chunk_entity_relation.graphml").exists():
+            raise ValueError(f"Failed to find rag database in directory {rag_db_path}")
 
-    # Prepare servers list for FastAPI
-    servers_list = [{"url": url} for url in server] if server else None
-    app = create_app(rag_db.absolute(), title=title, servers=servers_list)
-    uvicorn.run(app, host=host, port=port)
+        # Prepare servers list for FastAPI
+        servers_list = [{"url": url} for url in server] if server else None
+        app = create_app(rag_db_path.absolute(), title=title, servers=servers_list)
+        uvicorn.run(app, host=host, port=port)
 
 
 def start_main():
