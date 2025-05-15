@@ -21,7 +21,9 @@ class RagResponse(BaseModel):
     document_reference: str
 
 
-def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None) -> FastAPI:
+def create_app(
+    working_dir: Path, title: str, servers: Optional[List[Dict[str, str]]] = None
+) -> FastAPI:
     "Define the complete app here"
 
     @asynccontextmanager
@@ -52,9 +54,9 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
     # Use provided servers or default to localhost
     app = FastAPI(
         lifespan=rag_context_setup,
-        title="European Strategy Update 2025 Document Database",
+        title=title,
         description="Endpoint access a vector database with entity relationships of the "
-        "264 documents.",
+        "documents.",
         version="1.0.0",
         servers=servers,
     )
@@ -78,7 +80,13 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         q_params = QueryParam(
             mode=mode,
             top_k=top_k,
-            response_type="All useful quotes from supplied text as bullet points with a source at the end of each quote. Clearly indicating whether each source is from Knowledge Graph (KG) or Document Chunks (DC), and include the file path if available, in the following format: [KG/DC] file_path. No longer than 4000 characters.",
+            response_type=(
+                "All useful quotes from supplied text as bullet points "
+                "with a source at the end of each quote. Clearly indicating "
+                "whether each source is from Knowledge Graph (KG) or Document "
+                "Chunks (DC), and include the file path if available, in the "
+                "following format: [KG/DC] file_path. No longer than 4000 characters."
+            ),
             user_prompt="Don't draw conclusions or give intro text. Just the list of quotes.",
         )
         result = r_context.rag.query(question, param=q_params)
@@ -91,11 +99,10 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
 
 
 def main(
+    rag_db: Path = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
+    title: str = typer.Argument(..., help="Title for the FastAPI app"),
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
-    rag_db: Path = typer.Option(
-        ..., "--rag-db", help="Path to the RAG database directory (must exist)"
-    ),
     openai_key: str = typer.Option(
         None, "--openai-key", help="OpenAI API key to set as OPEN_API_KEY environment variable"
     ),
@@ -127,7 +134,9 @@ def main(
     )
     lg_prompt.PROMPTS["rag_response"] = do_replace(
         lg_prompt.PROMPTS["rag_response"],
-        '- List up to 5 most important reference sources at the end under "References" section. Clearly indicating whether each source is from Knowledge Graph (KG) or Document Chunks (DC), and include the file path if available, in the following format: [KG/DC] file_path',
+        '- List up to 5 most important reference sources at the end under "References" section. '
+        "Clearly indicating whether each source is from Knowledge Graph (KG) or Document Chunks "
+        "(DC), and include the file path if available, in the following format: [KG/DC] file_path",
         "",
     )
 
@@ -146,7 +155,7 @@ def main(
 
     # Prepare servers list for FastAPI
     servers_list = [{"url": url} for url in server] if server else None
-    app = create_app(rag_db.absolute(), servers=servers_list)
+    app = create_app(rag_db.absolute(), title=title, servers=servers_list)
     uvicorn.run(app, host=host, port=port)
 
 
