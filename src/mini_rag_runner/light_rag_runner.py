@@ -105,7 +105,8 @@ def create_app(
 @contextmanager
 def resolve_rag_db(rag_db: Path):
     """
-    Context manager: yields the path to the RAG DB directory, whether local or extracted from an archive/remote.
+    Context manager: yields the path to the RAG DB directory, whether local or extracted from an
+        archive/remote.
     Cleans up tempdir automatically if used.
     """
     if rag_db.is_dir():
@@ -115,10 +116,10 @@ def resolve_rag_db(rag_db: Path):
         tmp_path = Path(tmpdir.name)
         with fsspec.open(str(rag_db), "rb") as f:
             if str(rag_db).endswith(".zip"):
-                with zipfile.ZipFile(f) as zf:
+                with zipfile.ZipFile(f) as zf:  # type: ignore
                     zf.extractall(tmp_path)
             elif str(rag_db).endswith((".tar.gz", ".tgz")):
-                with tarfile.open(fileobj=f, mode="r:gz") as tf:
+                with tarfile.open(fileobj=f, mode="r:gz") as tf:  # type: ignore
                     tf.extractall(tmp_path)
             else:
                 raise ValueError("Unsupported archive format for rag_db")
