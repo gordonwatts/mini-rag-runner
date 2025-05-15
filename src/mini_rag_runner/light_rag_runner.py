@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, cast
 import typer
 from fastapi import FastAPI, Query, Request
 from lightrag import LightRAG, QueryParam
+from lightrag import prompt as lg_prompt
 from pydantic import BaseModel
 
 
@@ -77,7 +78,7 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         q_params = QueryParam(
             mode=mode,
             top_k=top_k,
-            response_type="All useful quotes from supplied text as bullet points with a reference at the end of each quote.",
+            response_type="All useful quotes from supplied text as bullet points with a source at the end of each quote. Clearly indicating whether each source is from Knowledge Graph (KG) or Document Chunks (DC), and include the file path if available, in the following format: [KG/DC] file_path. No longer than 4000 characters.",
             user_prompt="Don't draw conclusions or give intro text. Just the list of quotes.",
         )
         result = r_context.rag.query(question, param=q_params)
@@ -104,6 +105,35 @@ def main(
         help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
     ),
 ):
+    # Configure lightrag a little bit before anything else gets going.
+    def do_replace(source, s, d) -> str:
+        assert s in source, f"Did not found replacement for {s} in {d}"
+        return source.replace(s, d)
+
+    lg_prompt.PROMPTS["rag_response"] = do_replace(
+        lg_prompt.PROMPTS["rag_response"],
+        "Use markdown formatting with appropriate section headings",
+        "Use markdown formatting",
+    )
+    lg_prompt.PROMPTS["rag_response"] = do_replace(
+        lg_prompt.PROMPTS["rag_response"],
+        "Generate a concise response",
+        "Generate a response",
+    )
+    lg_prompt.PROMPTS["rag_response"] = do_replace(
+        lg_prompt.PROMPTS["rag_response"],
+        "- Ensure the response maintains continuity with the conversation history.",
+        "",
+    )
+    lg_prompt.PROMPTS["rag_response"] = do_replace(
+        lg_prompt.PROMPTS["rag_response"],
+        '- List up to 5 most important reference sources at the end under "References" section. Clearly indicating whether each source is from Knowledge Graph (KG) or Document Chunks (DC), and include the file path if available, in the following format: [KG/DC] file_path',
+        "",
+    )
+
+    logging.warning(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
+
+    # Next, get the server up and running
     import uvicorn
     import os
 
