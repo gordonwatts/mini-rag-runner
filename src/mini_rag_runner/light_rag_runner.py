@@ -77,8 +77,8 @@ def create_app(working_dir: Path, servers: Optional[List[Dict[str, str]]] = None
         q_params = QueryParam(
             mode=mode,
             top_k=top_k,
-            response_type="relevant quotes from original text as bullet points",
-            user_prompt="Report only the quotes, don't draw conclusions - that will be done later. Please place the reference for the source next to each quote.",
+            response_type="All useful quotes from supplied text as bullet points with a reference at the end of each quote.",
+            user_prompt="Don't draw conclusions or give intro text. Just the list of quotes.",
         )
         result = r_context.rag.query(question, param=q_params)
         logging.debug(f"  Result: '{result}'.")
