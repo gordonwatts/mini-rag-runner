@@ -52,6 +52,7 @@ dependencies = [
 [project.scripts]
 mini-rag-mcp = "mini_rag_runner.mcp_runner:start_main"
 light-rag-webapi = "mini_rag_runner.light_rag_runner:start_main"
+light-entity-tester = "mini_rag_runner.light_entity_tester:start_main"
 
 [project.optional-dependencies]
 dev = [
