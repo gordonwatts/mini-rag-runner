@@ -1,4 +1,5 @@
 import logging
+import os
 import tarfile
 import tempfile
 import zipfile
@@ -103,7 +104,7 @@ def create_app(
 
 
 @contextmanager
-def resolve_rag_db(rag_db: str):
+def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None):
     """
     Context manager: yields the path to the RAG DB directory, whether local or extracted from an
         archive/remote.
@@ -114,7 +115,16 @@ def resolve_rag_db(rag_db: str):
     else:
         tmpdir = tempfile.TemporaryDirectory()
         tmp_path = Path(tmpdir.name)
-        with fsspec.open(str(rag_db), "rb") as f:
+        # Use provided account_name/key or fallback to environment variables
+        account_name = account_name or os.getenv("LIGHTRAG_ACCOUNT_NAME")
+        account_key = account_key or os.getenv("LIGHTRAG_ACCOUNT_KEY")
+        if not account_name or not account_key:
+            raise ValueError("Azure storage account name and key must be provided via arguments or environment variables.")
+        storage_options = {
+            "account_name": account_name,
+            "account_key": account_key,
+        }
+        with fsspec.open(str(rag_db), "rb", **storage_options) as f:
             if str(rag_db).endswith(".zip"):
                 with zipfile.ZipFile(f) as zf:  # type: ignore
                     zf.extractall(tmp_path)
@@ -141,6 +151,12 @@ def main(
         None,
         "--server",
         help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
+    ),
+    account_name: Optional[str] = typer.Option(
+        None, "--account-name", help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)"
+    ),
+    account_key: Optional[str] = typer.Option(
+        None, "--account-key", help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)"
     ),
 ):
     # Configure lightrag a little bit before anything else gets going.
@@ -182,7 +198,7 @@ def main(
     if openai_key:
         os.environ["OPENAI_API_KEY"] = openai_key
 
-    with resolve_rag_db(rag_db) as rag_db_path:
+    with resolve_rag_db(rag_db, account_name=account_name, account_key=account_key) as rag_db_path:
         if not (rag_db_path / "graph_chunk_entity_relation.graphml").exists():
             raise ValueError(f"Failed to find rag database in directory {rag_db_path}")
 
