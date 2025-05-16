@@ -145,7 +145,10 @@ def resolve_rag_db(
 
 
 def main(
-    rag_db: str = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
+    rag_db: str = typer.Argument(
+        ...,
+        help="Path to the RAG database directory (must exist). If empty, will create a new database.",
+    ),
     title: str = typer.Argument(..., help="Title for the FastAPI app"),
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
