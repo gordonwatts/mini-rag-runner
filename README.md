@@ -8,6 +8,14 @@ LightRAG has a very nice API/server that can run in a second process. Unfortunat
 
 ## Running
 
+### Light Rag WebAPI
+
+```bash
+ light-rag-webapi ../azure-light-rag/storage-esu.tar.gz "European Union Strategy Update 2025 Submissions" --openai-key <key>
+```
+
+### MCP
+
 ```bash
  uvx --python=3.13 --from=git+<https://github.com/gordonwatts/mini-rag-runner.git@main> mini-rag-mcp
 ```
@@ -39,6 +47,41 @@ And running it. Note you need to mount the database inside the container (someho
 docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/miniragrunner:1.0.0a1 --rag-db /db --openai-key <api-key>
 ```
 
+### How to prepare the tar.gz (or ZIP file) of the database
+
+You can give this an upacked directory or a tar.gz file that can be unpacked. To prep the file:
+
+1. `cd` into the database directory
+1. Compress: `tar -czvf ../storage-esu.tar.gz .`
+
+```bash
+$ tar -czvf ../storage-esu.tar.gz .
+./
+./vdb_chunks.json
+./vdb_relationships.json
+./kv_store_full_docs.json
+./vdb_entities.json
+./graph_chunk_entity_relation.graphml
+./kv_store_doc_status.json
+./kv_store_text_chunks.json
+```
+
+### The `--rag-db` argument
+
+This can be:
+
+* A local directory with the light rag database
+* A `http` pointer to a tar/gz or zip file (the URL must end with those file extensions)
+* An Azure blob (e.g. `az://lightrag-data/esu.tar.gz`) - again, note that the name ends with the file type!
+
+Example of the command line that will use a tar/gz file from an azure container:
+
+```bash
+light-rag-webapi az://lightrag-data/esu.tar.gz "European Particle Physics Strategy Update 2025 Document Database"  --openai-key <key> --account-name <az-storage-account> --account-key <az-storage-key>
+```
+
+`fsspec` is used under the hood to fetch the compressed file.
+
 ## Installation
 
 You can install this package directly from the source:
@@ -64,19 +107,19 @@ mini-rag-mcp --host 0.0.0.0 --port 8000 --model gpt-4o-mini
 
 ### Available Options
 
-- `--host`: Host to bind the server to (default: 0.0.0.0)
-- `--port`: Port to bind the server to (default: 8000)
-- `--model`: LLM model to use (default: gpt-4o-mini)
+* `--host`: Host to bind the server to (default: 0.0.0.0)
+* `--port`: Port to bind the server to (default: 8000)
+* `--model`: LLM model to use (default: gpt-4o-mini)
 
 ## Environment Variables
 
 The package uses the following environment variables that can be set in the `.env` file:
 
-- `LLM_BINDING`: The LLM binding to use (default: openai)
-- `LLM_MODEL`: The LLM model to use (default: gpt-4o-mini)
-- `EMBEDDING_BINDING`: The embedding binding to use (default: openai)
-- `EMBEDDING_MODEL`: The embedding model to use (default: text-embedding-3-small)
-- `EMBEDDING_DIM`: The embedding dimension (default: 1536)
+* `LLM_BINDING`: The LLM binding to use (default: openai)
+* `LLM_MODEL`: The LLM model to use (default: gpt-4o-mini)
+* `EMBEDDING_BINDING`: The embedding binding to use (default: openai)
+* `EMBEDDING_MODEL`: The embedding model to use (default: text-embedding-3-small)
+* `EMBEDDING_DIM`: The embedding dimension (default: 1536)
 
 ## Docker
 

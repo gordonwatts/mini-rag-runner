@@ -1,9 +1,14 @@
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
 import logging
+import os
+import tarfile
+import tempfile
+import zipfile
+from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
+import fsspec
 import typer
 from fastapi import FastAPI, Query, Request
 from lightrag import LightRAG, QueryParam
@@ -98,8 +103,44 @@ def create_app(
     return app
 
 
+@contextmanager
+def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None):
+    """
+    Context manager: yields the path to the RAG DB directory, whether local or extracted from an
+        archive/remote.
+    Cleans up tempdir automatically if used.
+    """
+    if Path(rag_db).is_dir():
+        yield Path(rag_db)
+    else:
+        tmpdir = tempfile.TemporaryDirectory()
+        tmp_path = Path(tmpdir.name)
+        # Use provided account_name/key or fallback to environment variables
+        account_name = account_name or os.getenv("LIGHTRAG_ACCOUNT_NAME")
+        account_key = account_key or os.getenv("LIGHTRAG_ACCOUNT_KEY")
+        if not account_name or not account_key:
+            raise ValueError("Azure storage account name and key must be provided via arguments or environment variables.")
+        storage_options = {
+            "account_name": account_name,
+            "account_key": account_key,
+        }
+        with fsspec.open(str(rag_db), "rb", **storage_options) as f:
+            if str(rag_db).endswith(".zip"):
+                with zipfile.ZipFile(f) as zf:  # type: ignore
+                    zf.extractall(tmp_path)
+            elif str(rag_db).endswith((".tar.gz", ".tgz")):
+                with tarfile.open(fileobj=f, mode="r:gz") as tf:  # type: ignore
+                    tf.extractall(tmp_path)
+            else:
+                raise ValueError("Unsupported archive format for rag_db")
+        try:
+            yield tmp_path
+        finally:
+            tmpdir.cleanup()
+
+
 def main(
-    rag_db: Path = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
+    rag_db: str = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
     title: str = typer.Argument(..., help="Title for the FastAPI app"),
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
@@ -110,6 +151,12 @@ def main(
         None,
         "--server",
         help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
+    ),
+    account_name: Optional[str] = typer.Option(
+        None, "--account-name", help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)"
+    ),
+    account_key: Optional[str] = typer.Option(
+        None, "--account-key", help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)"
     ),
 ):
     # Configure lightrag a little bit before anything else gets going.
@@ -140,23 +187,25 @@ def main(
         "",
     )
 
-    logging.warning(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
+    logging.info(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
 
     # Next, get the server up and running
-    import uvicorn
     import os
+
+    import uvicorn
 
     os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
     if openai_key:
         os.environ["OPENAI_API_KEY"] = openai_key
 
-    if not rag_db.exists() or not (rag_db / "graph_chunk_entity_relation.graphml").exists():
-        raise ValueError(f"Failed to find rag database in directory {rag_db}")
+    with resolve_rag_db(rag_db, account_name=account_name, account_key=account_key) as rag_db_path:
+        if not (rag_db_path / "graph_chunk_entity_relation.graphml").exists():
+            raise ValueError(f"Failed to find rag database in directory {rag_db_path}")
 
-    # Prepare servers list for FastAPI
-    servers_list = [{"url": url} for url in server] if server else None
-    app = create_app(rag_db.absolute(), title=title, servers=servers_list)
-    uvicorn.run(app, host=host, port=port)
+        # Prepare servers list for FastAPI
+        servers_list = [{"url": url} for url in server] if server else None
+        app = create_app(rag_db_path.absolute(), title=title, servers=servers_list)
+        uvicorn.run(app, host=host, port=port)
 
 
 def start_main():

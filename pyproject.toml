@@ -5,9 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mini-rag-runner"
 version = "0.1.0"
-authors = [
-    {name = "Gordon Watts", email = "gwatts@uw.edu"},
-]
+authors = [{ name = "Gordon Watts", email = "gwatts@uw.edu" }]
 description = "Package to run an LLM's MCP server with lightrag-hku"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -21,6 +19,8 @@ dependencies = [
     "typer",
     "mcp",
     "fastapi",
+    "fsspec",
+    "adlfs",
     # The following are things needed by lightrag but aren't in their
     # pyproject for some reason.
     "aiohttp",
@@ -46,7 +46,7 @@ dependencies = [
     "tenacity",
     "networkx",
     "pip",
-    "nano_vectordb"
+    "nano_vectordb",
 ]
 
 [project.scripts]
