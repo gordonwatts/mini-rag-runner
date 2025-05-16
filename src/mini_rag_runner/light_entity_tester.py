@@ -34,7 +34,10 @@ def main(file: typer.FileText,
                 addon_params={
                     "entity_types": ["experiment", "physics concept or theory", "organization", "person", "geo", "event", "category"]
                 },
+                chunk_token_size=600,
+                chunk_overlap_token_size=50,
             )
+
             await rag.initialize_storages()
             await initialize_pipeline_status()
 
