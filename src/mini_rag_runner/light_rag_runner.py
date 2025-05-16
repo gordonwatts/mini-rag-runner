@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, cast
 
 import fsspec
 import typer
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, BackgroundTasks
 from lightrag import LightRAG, QueryParam
 from lightrag import prompt as lg_prompt
 from pydantic import BaseModel
@@ -27,9 +27,14 @@ class RagResponse(BaseModel):
 
 
 def create_app(
-    working_dir: Path, title: str, servers: Optional[List[Dict[str, str]]] = None
+    working_dir: Path,
+    title: str,
+    servers: Optional[List[Dict[str, str]]] = None,
+    ingest_dir: Optional[Path] = None,
 ) -> FastAPI:
     "Define the complete app here"
+
+    import asyncio
 
     @asynccontextmanager
     async def rag_context_setup(app: FastAPI):
@@ -52,9 +57,38 @@ def create_app(
 
         # Make sure everyone can use it.
         app.state.context = rag_context(rag)
+        app.state.ingest_lock = asyncio.Lock()
+        app.state.stop_ingest = False
 
+        async def ingest_watcher():
+            while not app.state.stop_ingest:
+                if ingest_dir and ingest_dir.exists():
+                    files = [f for f in ingest_dir.iterdir() if f.is_file()]
+                    for file in files:
+                        async with app.state.ingest_lock:
+                            try:
+                                with open(file, "r", encoding="utf-8", errors="ignore") as fin:
+                                    content = fin.read()
+                                logging.warning(f"Ingesting new file: {file}")
+                                await rag.ainsert(content, file_paths=str(file))
+                                logging.warning(f"Ingested and removed file: {file}")
+                            except Exception as e:
+                                logging.error(f"Failed to ingest {file}: {e}")
+                            finally:
+                                try:
+                                    file.unlink()
+                                except Exception as unlink_err:
+                                    logging.error(f"Failed to remove file {file}: {unlink_err}")
+                await asyncio.sleep(5)
+
+        # Start watcher if ingest_dir is set
+        if ingest_dir:
+            app.state.ingest_task = asyncio.create_task(ingest_watcher())
         yield
-        # Add clean up code here if we need it.
+        # Cleanup
+        app.state.stop_ingest = True
+        if ingest_dir and hasattr(app.state, "ingest_task"):
+            await app.state.ingest_task
 
     # Use provided servers or default to localhost
     app = FastAPI(
@@ -104,7 +138,9 @@ def create_app(
 
 
 @contextmanager
-def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None):
+def resolve_rag_db(
+    rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None
+):
     """
     Context manager: yields the path to the RAG DB directory, whether local or extracted from an
         archive/remote.
@@ -118,13 +154,16 @@ def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key:
         # Use provided account_name/key or fallback to environment variables
         account_name = account_name or os.getenv("LIGHTRAG_ACCOUNT_NAME")
         account_key = account_key or os.getenv("LIGHTRAG_ACCOUNT_KEY")
-        if not account_name or not account_key:
-            raise ValueError("Azure storage account name and key must be provided via arguments or environment variables.")
-        storage_options = {
-            "account_name": account_name,
-            "account_key": account_key,
-        }
-        with fsspec.open(str(rag_db), "rb", **storage_options) as f:
+        # Only set storage_options if both are present and non-blank
+        if account_name and account_key:
+            storage_options = {
+                "account_name": account_name,
+                "account_key": account_key,
+            }
+            open_args = dict(**storage_options)
+        else:
+            open_args = {}
+        with fsspec.open(str(rag_db), "rb", **open_args) as f:
             if str(rag_db).endswith(".zip"):
                 with zipfile.ZipFile(f) as zf:  # type: ignore
                     zf.extractall(tmp_path)
@@ -140,7 +179,10 @@ def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key:
 
 
 def main(
-    rag_db: str = typer.Argument(..., help="Path to the RAG database directory (must exist)"),
+    rag_db: str = typer.Argument(
+        ...,
+        help="Path to the RAG database directory (must exist). If empty, will create a new database.",
+    ),
     title: str = typer.Argument(..., help="Title for the FastAPI app"),
     host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
     port: int = typer.Option(8001, help="Port to bind the server to"),
@@ -153,10 +195,25 @@ def main(
         help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
     ),
     account_name: Optional[str] = typer.Option(
-        None, "--account-name", help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)"
+        None,
+        "--account-name",
+        help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)",
     ),
     account_key: Optional[str] = typer.Option(
-        None, "--account-key", help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)"
+        None,
+        "--account-key",
+        help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)",
+    ),
+    ingest_dir: Optional[Path] = typer.Option(
+        None,
+        "--ingest-dir",
+        help="Path to a local directory to watch for ingestion.",
+        exists=False,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
     ),
 ):
     # Configure lightrag a little bit before anything else gets going.
@@ -200,11 +257,14 @@ def main(
 
     with resolve_rag_db(rag_db, account_name=account_name, account_key=account_key) as rag_db_path:
         if not (rag_db_path / "graph_chunk_entity_relation.graphml").exists():
-            raise ValueError(f"Failed to find rag database in directory {rag_db_path}")
-
-        # Prepare servers list for FastAPI
+            logging.warning(
+                f"Failed to find graph_chunk_entity_relation.graphml in {rag_db_path}. "
+                "Creating empty database."
+            )
         servers_list = [{"url": url} for url in server] if server else None
-        app = create_app(rag_db_path.absolute(), title=title, servers=servers_list)
+        app = create_app(
+            rag_db_path.absolute(), title=title, servers=servers_list, ingest_dir=ingest_dir
+        )
         uvicorn.run(app, host=host, port=port)
 
 
