@@ -104,7 +104,9 @@ def create_app(
 
 
 @contextmanager
-def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None):
+def resolve_rag_db(
+    rag_db: str, account_name: Optional[str] = None, account_key: Optional[str] = None
+):
     """
     Context manager: yields the path to the RAG DB directory, whether local or extracted from an
         archive/remote.
@@ -118,13 +120,16 @@ def resolve_rag_db(rag_db: str, account_name: Optional[str] = None, account_key:
         # Use provided account_name/key or fallback to environment variables
         account_name = account_name or os.getenv("LIGHTRAG_ACCOUNT_NAME")
         account_key = account_key or os.getenv("LIGHTRAG_ACCOUNT_KEY")
-        if not account_name or not account_key:
-            raise ValueError("Azure storage account name and key must be provided via arguments or environment variables.")
-        storage_options = {
-            "account_name": account_name,
-            "account_key": account_key,
-        }
-        with fsspec.open(str(rag_db), "rb", **storage_options) as f:
+        # Only set storage_options if both are present and non-blank
+        if account_name and account_key:
+            storage_options = {
+                "account_name": account_name,
+                "account_key": account_key,
+            }
+            open_args = dict(**storage_options)
+        else:
+            open_args = {}
+        with fsspec.open(str(rag_db), "rb", **open_args) as f:
             if str(rag_db).endswith(".zip"):
                 with zipfile.ZipFile(f) as zf:  # type: ignore
                     zf.extractall(tmp_path)
@@ -153,10 +158,14 @@ def main(
         help="Server URL to inject into the OpenAPI servers list. Repeat for multiple servers.",
     ),
     account_name: Optional[str] = typer.Option(
-        None, "--account-name", help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)"
+        None,
+        "--account-name",
+        help="Azure Storage account name (or set LIGHTRAG_ACCOUNT_NAME env var)",
     ),
     account_key: Optional[str] = typer.Option(
-        None, "--account-key", help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)"
+        None,
+        "--account-key",
+        help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)",
     ),
 ):
     # Configure lightrag a little bit before anything else gets going.
