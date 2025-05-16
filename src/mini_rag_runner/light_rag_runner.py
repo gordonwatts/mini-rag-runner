@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, cast
 
 import fsspec
 import typer
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, BackgroundTasks
 from lightrag import LightRAG, QueryParam
 from lightrag import prompt as lg_prompt
 from pydantic import BaseModel
@@ -27,9 +27,14 @@ class RagResponse(BaseModel):
 
 
 def create_app(
-    working_dir: Path, title: str, servers: Optional[List[Dict[str, str]]] = None
+    working_dir: Path,
+    title: str,
+    servers: Optional[List[Dict[str, str]]] = None,
+    ingest_dir: Optional[Path] = None,
 ) -> FastAPI:
     "Define the complete app here"
+
+    import asyncio
 
     @asynccontextmanager
     async def rag_context_setup(app: FastAPI):
@@ -52,9 +57,38 @@ def create_app(
 
         # Make sure everyone can use it.
         app.state.context = rag_context(rag)
+        app.state.ingest_lock = asyncio.Lock()
+        app.state.stop_ingest = False
 
+        async def ingest_watcher():
+            while not app.state.stop_ingest:
+                if ingest_dir and ingest_dir.exists():
+                    files = [f for f in ingest_dir.iterdir() if f.is_file()]
+                    for file in files:
+                        async with app.state.ingest_lock:
+                            try:
+                                with open(file, "r", encoding="utf-8", errors="ignore") as fin:
+                                    content = fin.read()
+                                logging.warning(f"Ingesting new file: {file}")
+                                await rag.ainsert(content, file_paths=str(file))
+                                logging.warning(f"Ingested and removed file: {file}")
+                            except Exception as e:
+                                logging.error(f"Failed to ingest {file}: {e}")
+                            finally:
+                                try:
+                                    file.unlink()
+                                except Exception as unlink_err:
+                                    logging.error(f"Failed to remove file {file}: {unlink_err}")
+                await asyncio.sleep(5)
+
+        # Start watcher if ingest_dir is set
+        if ingest_dir:
+            app.state.ingest_task = asyncio.create_task(ingest_watcher())
         yield
-        # Add clean up code here if we need it.
+        # Cleanup
+        app.state.stop_ingest = True
+        if ingest_dir and hasattr(app.state, "ingest_task"):
+            await app.state.ingest_task
 
     # Use provided servers or default to localhost
     app = FastAPI(
@@ -170,6 +204,17 @@ def main(
         "--account-key",
         help="Azure Storage account key (or set LIGHTRAG_ACCOUNT_KEY env var)",
     ),
+    ingest_dir: Optional[Path] = typer.Option(
+        None,
+        "--ingest-dir",
+        help="Path to a local directory to watch for ingestion.",
+        exists=False,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        readable=True,
+        resolve_path=True,
+    ),
 ):
     # Configure lightrag a little bit before anything else gets going.
     def do_replace(source, s, d) -> str:
@@ -216,10 +261,10 @@ def main(
                 f"Failed to find graph_chunk_entity_relation.graphml in {rag_db_path}. "
                 "Creating empty database."
             )
-
-        # Prepare servers list for FastAPI
         servers_list = [{"url": url} for url in server] if server else None
-        app = create_app(rag_db_path.absolute(), title=title, servers=servers_list)
+        app = create_app(
+            rag_db_path.absolute(), title=title, servers=servers_list, ingest_dir=ingest_dir
+        )
         uvicorn.run(app, host=host, port=port)
 
 
