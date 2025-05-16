@@ -212,7 +212,10 @@ def main(
 
     with resolve_rag_db(rag_db, account_name=account_name, account_key=account_key) as rag_db_path:
         if not (rag_db_path / "graph_chunk_entity_relation.graphml").exists():
-            raise ValueError(f"Failed to find rag database in directory {rag_db_path}")
+            logging.warning(
+                f"Failed to find graph_chunk_entity_relation.graphml in {rag_db_path}. "
+                "Creating empty database."
+            )
 
         # Prepare servers list for FastAPI
         servers_list = [{"url": url} for url in server] if server else None
