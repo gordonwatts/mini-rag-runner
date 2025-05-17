@@ -32,7 +32,7 @@ def main(file: typer.FileText,
                 embedding_func=openai_embed,
                 llm_model_func=gpt_4o_mini_complete,
                 addon_params={
-                    "entity_types": ["experiment", "physics concept or theory", "organization", "person", "geo", "event", "category"]
+                    "entity_types": ["experiment", "physics concept or theory", "country", "organization", "person", "geo", "event", "category"]
                 },
                 chunk_token_size=600,
                 chunk_overlap_token_size=50,
