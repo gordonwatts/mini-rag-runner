@@ -3,7 +3,6 @@ import asyncio
 from lightrag import LightRAG
 from lightrag.llm.openai import openai_embed, openai_complete
 from tempfile import TemporaryDirectory
-from numpy import add
 import typer
 from lightrag.kg.shared_storage import initialize_pipeline_status
 
