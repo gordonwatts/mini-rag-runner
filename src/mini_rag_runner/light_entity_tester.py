@@ -1,7 +1,7 @@
 import os
 import asyncio
 from lightrag import LightRAG
-from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+from lightrag.llm.openai import openai_embed, openai_complete
 from tempfile import TemporaryDirectory
 from numpy import add
 import typer
@@ -9,18 +9,25 @@ from lightrag.kg.shared_storage import initialize_pipeline_status
 
 app = typer.Typer()
 
+
 @app.command()
-def main(file: typer.FileText,
-         openai_key: str = typer.Option(
+def main(
+    file: typer.FileText,
+    openai_key: str = typer.Option(
         None, "--openai-key", help="OpenAI API key to set as OPENAI_API_KEY environment variable"
+    ),
+    llm_model_name: str = typer.Option(
+        "gpt-4o-mini", "--llm-model-name", help="LLM model name to use (default: gpt-4o-mini)"
     ),
 ):
     """
     Run entity extraction on an input file and dump output on everything found.
     """
+
     async def async_main():
         # Get openai key set
-        os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
+        # os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
+        os.environ["OPENAI_API_BASE"] = "https://localhost:12434/v1"
         if openai_key:
             os.environ["OPENAI_API_KEY"] = openai_key
 
@@ -30,10 +37,20 @@ def main(file: typer.FileText,
             rag = LightRAG(
                 working_dir=str(working_dir),
                 embedding_func=openai_embed,
-                llm_model_func=gpt_4o_mini_complete,
+                llm_model_func=openai_complete,
                 addon_params={
-                    "entity_types": ["experiment", "physics concept or theory", "country", "organization", "person", "geo", "event", "category"]
+                    "entity_types": [
+                        "physics detector/experiment",
+                        "physics concept or theory",
+                        "country",
+                        "organization",
+                        "person",
+                        "geo",
+                        "event",
+                        "category",
+                    ]
                 },
+                llm_model_name=llm_model_name,
                 chunk_token_size=600,
                 chunk_overlap_token_size=50,
             )
@@ -53,9 +70,11 @@ def main(file: typer.FileText,
 
     asyncio.run(async_main())
 
+
 def start_main():
     app()
     # typer.run(main)
+
 
 if __name__ == "__main__":
     app()
