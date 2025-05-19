@@ -13,7 +13,7 @@ from lightrag.llm.openai import openai_complete, openai_embed
 app = typer.Typer()
 
 
-async def my_openai_complete(
+async def local_openai_interface(
     prompt,
     system_prompt=None,
     history_messages=None,
@@ -42,17 +42,36 @@ def main(
     llm_model_name: str = typer.Option(
         "gpt-4o-mini", "--llm-model-name", help="LLM model name to use (default: gpt-4o-mini)"
     ),
+    llm_source: str = typer.Option(
+        "openai",
+        "--llm-source",
+        help="LLM source to use: 'openai' or 'docker'",
+        case_sensitive=False,
+        show_choices=True,
+        rich_help_panel="LLM Options",
+        prompt=False,
+        metavar="[openai|docker]",
+        callback=lambda v: v.lower() if v else v,
+    ),
 ):
     """
     Run entity extraction on an input file and dump output on everything found.
     """
 
     async def async_main():
-        # Get openai key set
+        # Get openai key & location set
         os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
-        # os.environ["OPENAI_API_BASE"] = "http://localhost:12434/engines/llama.cpp/v1"
         if openai_key:
             os.environ["OPENAI_API_KEY"] = openai_key
+
+        # If we are doing a local run, we need to use a different openai interface.
+        # Note that for a text embedding that still uses openai, we need the
+        # default key still.
+        # Select the LLM function based on llm_source
+        if llm_source == "docker":
+            llm_model_func = local_openai_interface
+        else:
+            llm_model_func = openai_complete
 
         # Create a temp directory for the working directory
         with TemporaryDirectory() as working_dir:
@@ -60,7 +79,7 @@ def main(
             rag = LightRAG(
                 working_dir=str(working_dir),
                 embedding_func=openai_embed,
-                llm_model_func=my_openai_complete,
+                llm_model_func=llm_model_func,
                 addon_params={
                     "entity_types": [
                         "physics detector/experiment",
