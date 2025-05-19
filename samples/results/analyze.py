@@ -70,20 +70,20 @@ print(f"## Files compared:\n")
 for fname in file_list:
     print(f"- {fname}")
 
-print("\n## Entities present in all files\n")
+print(f"\n## Entities present in all files ({len(common_entities)})\n")
 for entity in sorted(common_entities):
     print(f"- {entity}")
 
-print("\n## Entities unique to a single file\n")
+print(f"\n## Entities unique to a single file\n")
 for fname, ents in unique_entities.items():
-    print(f"### {fname}")
+    print(f"### {fname} ({len(ents)})")
     for entity in sorted(ents):
         print(f"- {entity}")
     print()
 
-print("\n## Entities present in subsets of files\n")
+print(f"\n## Entities present in subsets of files\n")
 for combo, ents in subset_entities.items():
-    print(f"### {', '.join(combo)}")
+    print(f"### {', '.join(combo)} ({len(ents)})")
     for entity in sorted(ents):
         print(f"- {entity}")
     print()
