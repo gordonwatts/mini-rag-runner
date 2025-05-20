@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, cast
 
 import fsspec
 import typer
-from fastapi import FastAPI, Query, Request, BackgroundTasks
+from fastapi import FastAPI, Query, Request
 from lightrag import LightRAG, QueryParam
 from lightrag import prompt as lg_prompt
 from pydantic import BaseModel
@@ -40,7 +40,7 @@ def create_app(
     async def rag_context_setup(app: FastAPI):
         "Create the RAG application"
         from lightrag.kg.shared_storage import initialize_pipeline_status
-        from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+        from lightrag.llm.openai import openai_complete, openai_embed
 
         # setup_logger("lightrag", level="INFO")
 
@@ -49,7 +49,22 @@ def create_app(
         rag = LightRAG(
             working_dir=str(working_dir),
             embedding_func=openai_embed,
-            llm_model_func=gpt_4o_mini_complete,
+            llm_model_func=openai_complete,
+            addon_params={
+                "entity_types": [
+                    "physics detector/experiment",
+                    "physics concept or theory",
+                    "country",
+                    "organization",
+                    "person",
+                    "geo",
+                    "event",
+                    "category",
+                ],
+            },
+            llm_model_name="gpt-4.1-nano",
+            chunk_token_size=600,
+            chunk_overlap_token_size=50,
         )
 
         await rag.initialize_storages()
