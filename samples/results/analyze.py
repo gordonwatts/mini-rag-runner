@@ -5,20 +5,28 @@ import pandas as pd
 from collections import defaultdict
 from itertools import combinations
 
-# Require a wildcard argument
+# Require at least one argument (file/wildcard)
 if len(sys.argv) < 2:
-    print("Error: You must specify a wildcard pattern for the Excel files.", file=sys.stderr)
-    print("Usage: python analyze.py '<wildcard>'", file=sys.stderr)
+    print(
+        "Error: You must specify at least one wildcard or file path for the Excel files.",
+        file=sys.stderr,
+    )
+    print("Usage: python analyze.py '<wildcard1>' '<wildcard2>' ...", file=sys.stderr)
     sys.exit(1)
 
-wildcard = sys.argv[1]
+# Collect all files from all arguments
+all_files = set()
+for arg in sys.argv[1:]:
+    matched = list(Path().glob(arg))
+    if not matched:
+        print(f"Warning: No files matched the pattern: {arg}", file=sys.stderr)
+    all_files.update(matched)
 
-# Use pathlib to resolve files
-files = list(Path().glob(wildcard))
-
-if not files:
-    print(f"Error: No files matched the pattern: {wildcard}", file=sys.stderr)
+if not all_files:
+    print("Error: No files matched any of the provided patterns.", file=sys.stderr)
     sys.exit(1)
+
+files = sorted(all_files)
 
 # Map: filename -> set of entity_names
 entities_by_file = {}
