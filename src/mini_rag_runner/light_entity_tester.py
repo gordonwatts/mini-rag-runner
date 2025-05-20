@@ -37,10 +37,16 @@ async def local_openai_interface(
 def main(
     file: typer.FileText,
     openai_key: str = typer.Option(
-        None, "--openai-key", help="OpenAI API key to set as OPENAI_API_KEY environment variable"
+        None,
+        "--openai-key",
+        help="OpenAI API key to set as OPENAI_API_KEY environment variable",
+        rich_help_panel="LLM Options",
     ),
     llm_model_name: str = typer.Option(
-        "gpt-4o-mini", "--llm-model-name", help="LLM model name to use (default: gpt-4o-mini)"
+        "gpt-4o-mini",
+        "--llm-model-name",
+        help="LLM model name to use (default: gpt-4o-mini)",
+        rich_help_panel="LLM Options",
     ),
     llm_source: str = typer.Option(
         "openai",
