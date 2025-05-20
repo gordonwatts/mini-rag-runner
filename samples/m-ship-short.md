@@ -1,0 +1,5 @@
+# Comparison of MATHUSLA and SHiP Experiments in Long-Lived Particle Searches
+
+## Introduction
+
+Long-lived particles (LLPs) offer a compelling avenue for physics beyond the Standard Model (BSM), potentially addressing key questions like the nature of dark matter, neutrino masses, or the baryon asymmetry. Two major proposed experiments at CERN – **MATHUSLA** (Massive Timing Hodoscope for Ultra-Stable Particles) and **SHiP** (Search for Hidden Particles) – are dedicated to LLP searches but with different approaches. **MATHUSLA** is a planned large-volume detector on the surface adjacent to the HL-LHC collider (near the CMS interaction point), aiming to catch neutral LLP decays from \$pp\$ collisions. **SHiP**, in contrast, is a proposed fixed-target **beam dump** experiment at the SPS, designed to produce and detect feebly interacting particles in a controlled intensity-frontier setting. Both experiments are optimized for *complementary regimes* of new physics. This report compares their physics goals, sensitivity reach, benchmark models, detector designs, and how they complement other experiments.
