@@ -138,3 +138,5 @@ This package uses [Hatch](https://hatch.pypa.io/) as its build system. To set up
 pip install hatch
 hatch shell
 ```
+
+Note this will not build on raw windows - `gensim` does not build on most raw installations of windows.
