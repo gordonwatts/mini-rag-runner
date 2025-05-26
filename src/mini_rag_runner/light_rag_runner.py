@@ -237,7 +237,22 @@ def main(
         readable=True,
         resolve_path=True,
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase verbosity. Use -v for INFO, -vv for DEBUG.",
+    ),
 ):
+    # Set logging level based on verbosity
+    if verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif verbose == 1:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
     # Configure lightrag a little bit before anything else gets going.
     def do_replace(source, s, d) -> str:
         assert s in source, f"Did not found replacement for {s} in {d}"
