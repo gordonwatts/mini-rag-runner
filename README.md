@@ -50,8 +50,10 @@ docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/minirag
 ### How to generate the database
 
 ```bash
-docker run -p8001:8001 -v ${PWD}\..\rag-db\eusu-2025:/db -v ${PWD}\..\data\eusu-2025:/ingest --rm -it miniragrunner:latest /db "European Union Strategy Update 2025" --ingest-dir /data --openai-key <key>
+docker run -p8001:8001 -v ${PWD}\..\rag-db\eusu-2025:/db -v ${PWD}\..\data\ingest-temp:/ingest --rm -it miniragrunner:latest /db "European Union Strategy Update 2025" --ingest-dir /ingest --openai-key <key>
 ```
+
+WARNING: files are removed from the ingestion directory as they are successfully ingested.
 
 ### How to prepare the tar.gz (or ZIP file) of the database
 
