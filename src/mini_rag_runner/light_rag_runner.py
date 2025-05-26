@@ -277,8 +277,6 @@ def main(
         "",
     )
 
-    logging.info(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
-
     # Next, get the server up and running
     import os
 
