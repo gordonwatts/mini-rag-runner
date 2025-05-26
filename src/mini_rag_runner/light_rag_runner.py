@@ -76,15 +76,11 @@ def create_app(
         app.state.stop_ingest = False
 
         async def ingest_watcher():
-            seen_files = set()
             logging.info(f"Starting ingest watcher for directory: {ingest_dir}")
             while not app.state.stop_ingest:
                 if ingest_dir and ingest_dir.exists():
                     files = [f for f in ingest_dir.iterdir() if f.is_file()]
                     for file in files:
-                        if file in seen_files:
-                            continue
-                        seen_files.add(file)
                         async with app.state.ingest_lock:
                             try:
                                 with open(file, "r", encoding="utf-8", errors="ignore") as fin:
