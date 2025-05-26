@@ -76,17 +76,22 @@ def create_app(
         app.state.stop_ingest = False
 
         async def ingest_watcher():
+            seen_files = set()
+            logging.info(f"Starting ingest watcher for directory: {ingest_dir}")
             while not app.state.stop_ingest:
                 if ingest_dir and ingest_dir.exists():
                     files = [f for f in ingest_dir.iterdir() if f.is_file()]
                     for file in files:
+                        if file in seen_files:
+                            continue
+                        seen_files.add(file)
                         async with app.state.ingest_lock:
                             try:
                                 with open(file, "r", encoding="utf-8", errors="ignore") as fin:
                                     content = fin.read()
-                                logging.warning(f"Ingesting new file: {file}")
+                                logging.info(f"Ingesting new file: {file}")
                                 await rag.ainsert(content, file_paths=str(file))
-                                logging.warning(f"Ingested and removed file: {file}")
+                                logging.info(f"Ingested and removed file: {file}")
                             except Exception as e:
                                 logging.error(f"Failed to ingest {file}: {e}")
                             finally:
@@ -94,6 +99,8 @@ def create_app(
                                     file.unlink()
                                 except Exception as unlink_err:
                                     logging.error(f"Failed to remove file {file}: {unlink_err}")
+                else:
+                    logging.warning(f"Ingest directory {ingest_dir} does not exist or is not set.")
                 await asyncio.sleep(5)
 
         # Start watcher if ingest_dir is set
