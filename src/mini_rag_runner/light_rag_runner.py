@@ -242,12 +242,18 @@ def main(
     ),
 ):
     # Set logging level based on verbosity
+    # Set default log format to include local time
     if verbose >= 2:
-        logging.basicConfig(level=logging.DEBUG)
+        log_level = logging.DEBUG
     elif verbose == 1:
-        logging.basicConfig(level=logging.INFO)
+        log_level = logging.INFO
     else:
-        logging.basicConfig(level=logging.WARNING)
+        log_level = logging.WARNING
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     # Configure lightrag a little bit before anything else gets going.
     def do_replace(source, s, d) -> str:
