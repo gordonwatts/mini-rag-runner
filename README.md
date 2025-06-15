@@ -47,6 +47,14 @@ And running it. Note you need to mount the database inside the container (someho
 docker run -p8001:8001 -v ${PWD}/../storage-esu:/db --rm -it gordonwatts/miniragrunner:1.0.0a1 --rag-db /db --openai-key <api-key>
 ```
 
+### How to generate the database
+
+```bash
+docker run -p8001:8001 -v ${PWD}\..\rag-db\eusu-2025:/db -v ${PWD}\..\data\ingest-temp:/ingest --rm -it miniragrunner:latest /db "European Union Strategy Update 2025" --ingest-dir /ingest --openai-key <key>
+```
+
+WARNING: files are removed from the ingestion directory as they are successfully ingested.
+
 ### How to prepare the tar.gz (or ZIP file) of the database
 
 You can give this an upacked directory or a tar.gz file that can be unpacked. To prep the file:
@@ -138,3 +146,5 @@ This package uses [Hatch](https://hatch.pypa.io/) as its build system. To set up
 pip install hatch
 hatch shell
 ```
+
+Note this will not build on raw windows - `gensim` does not build on most raw installations of windows.

@@ -76,6 +76,7 @@ def create_app(
         app.state.stop_ingest = False
 
         async def ingest_watcher():
+            logging.info(f"Starting ingest watcher for directory: {ingest_dir}")
             while not app.state.stop_ingest:
                 if ingest_dir and ingest_dir.exists():
                     files = [f for f in ingest_dir.iterdir() if f.is_file()]
@@ -84,9 +85,9 @@ def create_app(
                             try:
                                 with open(file, "r", encoding="utf-8", errors="ignore") as fin:
                                     content = fin.read()
-                                logging.warning(f"Ingesting new file: {file}")
+                                logging.info(f"Ingesting new file: {file}")
                                 await rag.ainsert(content, file_paths=str(file))
-                                logging.warning(f"Ingested and removed file: {file}")
+                                logging.info(f"Ingested and removed file: {file}")
                             except Exception as e:
                                 logging.error(f"Failed to ingest {file}: {e}")
                             finally:
@@ -94,6 +95,8 @@ def create_app(
                                     file.unlink()
                                 except Exception as unlink_err:
                                     logging.error(f"Failed to remove file {file}: {unlink_err}")
+                else:
+                    logging.warning(f"Ingest directory {ingest_dir} does not exist or is not set.")
                 await asyncio.sleep(5)
 
         # Start watcher if ingest_dir is set
@@ -230,7 +233,28 @@ def main(
         readable=True,
         resolve_path=True,
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase verbosity. Use -v for INFO, -vv for DEBUG.",
+    ),
 ):
+    # Set logging level based on verbosity
+    # Set default log format to include local time
+    if verbose >= 2:
+        log_level = logging.DEBUG
+    elif verbose == 1:
+        log_level = logging.INFO
+    else:
+        log_level = logging.WARNING
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     # Configure lightrag a little bit before anything else gets going.
     def do_replace(source, s, d) -> str:
         assert s in source, f"Did not found replacement for {s} in {d}"
@@ -258,8 +282,6 @@ def main(
         "(DC), and include the file path if available, in the following format: [KG/DC] file_path",
         "",
     )
-
-    logging.info(f"rag_response prompt: {lg_prompt.PROMPTS['rag_response']}")
 
     # Next, get the server up and running
     import os
